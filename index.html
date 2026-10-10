@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3d36">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>School Timetabler</title>
+<style>
+:root{
+  --board:#1f3d36; --board2:#2c5248; --paper:#fbfcfa; --ink:#1b2430; --rule:#c9d6e6;
+  --margin:#c4453c; --muted:#5d6b78; --ok:#2b7a4b; --bad:#b3261e; --chalk:#f6f8f4;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--paper)}
+header.app{background:var(--board);color:var(--chalk);padding:calc(10px + env(safe-area-inset-top)) 14px 0;position:sticky;top:0;z-index:5}
+header.app h1{font:700 19px/1.2 Georgia,"Noto Serif",serif;margin:0 0 8px;letter-spacing:.2px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 10px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:none;border:0;background:none;color:rgba(246,248,244,.72);padding:10px 12px 9px;font:inherit;font-weight:600;border-bottom:3px solid transparent}
+nav.tabs button.on{color:#fff;border-bottom-color:var(--margin)}
+main{padding:12px 12px 90px;max-width:1000px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--rule);border-left:4px solid var(--margin);border-radius:4px;padding:12px 12px 10px;margin-bottom:12px}
+.card h2{font:700 16px/1.25 Georgia,"Noto Serif",serif;margin:0 0 6px}
+.hint{color:var(--muted);font-size:13px;margin:4px 0 6px}
+label.f{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,select{font:inherit;padding:9px 10px;border:1px solid #aebccd;border-radius:6px;background:#fff;width:100%;min-width:0;color:var(--ink)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--board2);outline-offset:1px}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--board);flex:none;padding:0}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.row>*{flex:1;min-width:0}
+.row>.x{flex:0 0 auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.item{border-top:1px dashed var(--rule);padding:8px 0 4px}
+.item:first-of-type{border-top:0}
+.chk{display:flex;gap:10px;align-items:center;font-size:14px;margin:4px 0 6px}
+button.b{font:inherit;font-weight:600;padding:9px 14px;border-radius:6px;border:1px solid var(--board);background:#fff;color:var(--board)}
+button.b.pri{background:var(--board);color:#fff}
+button.b.del{border-color:#d9a19c;color:var(--bad)}
+button.b.sm{padding:7px 11px}
+button.b:disabled{opacity:.5}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.slot{border:1px solid var(--rule);border-radius:6px;padding:4px 10px 10px;margin-bottom:8px;background:#fafcff}
+.slot .acts{display:flex;gap:6px;margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-size:12px;padding:3px 9px;border-radius:99px;background:#eef3f8;border:1px solid var(--rule)}
+.chip.bad{background:#fdecea;border-color:#e3aaa5;color:var(--bad)}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--board);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+.sheet{background:#fff;border:1px solid var(--rule);padding:12px;margin-bottom:14px;overflow-x:auto}
+.sheet h3{font:700 17px/1.2 Georgia,"Noto Serif",serif;margin:0}
+.sheet .sub{color:var(--muted);font-size:12px;margin:2px 0 8px}
+.sheet .key{font-size:11px;color:#333;margin-top:8px}
+table.tt{border-collapse:collapse;width:100%;font-size:12px;min-width:680px}
+table.tt th,table.tt td{border:1px solid #8c98a6;padding:4px 3px;text-align:center;vertical-align:middle;height:38px}
+table.tt thead th{background:#e6edf5;height:auto}
+table.tt th small{display:block;font-weight:400;color:#444;font-size:10px}
+table.tt th.rh{background:#e6edf5;text-align:left;white-space:nowrap;padding:4px 8px}
+table.tt th.brk,table.tt td.brk{background:#eceff2;width:24px;padding:0}
+table.tt td.brk span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;letter-spacing:1px;color:#444}
+table.tt th.brk{font-size:9px}
+td .s{display:block;font-weight:700}
+td .t{display:block;font-size:10px;color:#2a2a2a}
+header.app .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+header.app .top h1{margin:0}
+.lock{border:1px solid rgba(246,248,244,.5);background:none;color:var(--chalk);border-radius:6px;padding:5px 12px;font:inherit;font-size:13px;font-weight:600}
+.auth{max-width:420px;margin:24px auto 0}
+.auth h2{font-size:20px}
+.code{font:700 22px/1.3 ui-monospace,Menlo,Consolas,monospace;letter-spacing:2px;text-align:center;padding:14px 8px;background:#f1f5f9;border:2px dashed var(--margin);border-radius:6px;margin:10px 0;user-select:all;word-break:break-all}
+.link{background:none;border:0;color:var(--board2);text-decoration:underline;font:inherit;padding:8px 0;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--board);border-radius:4px;padding:10px 12px}
+.stat b{display:block;font:700 28px/1.1 Georgia,"Noto Serif",serif}
+.stat span{font-size:12px;color:var(--muted)}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px dashed var(--rule);cursor:pointer}
+.steps li:first-child{border-top:0}
+.steps .dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff}
+.steps .done .dot{background:var(--ok);border-color:var(--ok)}
+.steps small{display:block;color:var(--muted);font-size:12px}
+.bars .br{display:grid;grid-template-columns:96px 1fr 44px;gap:8px;align-items:center;font-size:13px;margin:6px 0}
+.bars .br span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:10px;background:#e8eef4;border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--board2)}
+.bar i.over{background:var(--bad)}
+.bars .br span:last-child{text-align:right;color:var(--muted)}
+.grp{font-weight:700;font-size:13px;margin:10px 0 4px}
+table.tt.time{table-layout:fixed;min-width:900px}
+table.tt.time th.rh{width:74px}
+table.tt th.vt{height:78px;padding:0}
+table.tt th.vt span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;white-space:nowrap;font-weight:400}
+@page{size:A4 landscape;margin:10mm}
+@media print{
+  html,body{background:#fff}
+  header.app,.noprint,#toast{display:none!important}
+  main{padding:0;max-width:none}
+  .sheet{border:0;padding:0;margin:0;overflow:visible;break-after:page;page-break-after:always}
+  .sheet:last-child{break-after:auto;page-break-after:auto}
+  table.tt,table.tt.time{min-width:0;font-size:11px}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="top"><h1>School Timetabler</h1><button id="lockbtn" class="lock" onclick="logout()">Lock</button></div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main id="view"></main>
+<div id="toast"></div>
+
+<script>
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const KEY='school-timetabler-offline-v1';
+let toastT;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600);}
+function opt(list,sel){return list.map(([v,l])=>`<option value="${esc(v)}"${String(v)===String(sel)?' selected':''}>${esc(l)}</option>`).join('');}
+function addMin(t,m){const [h,mi]=t.split(':').map(Number);const x=h*60+mi+m;return String(Math.floor(x/60)%24).padStart(2,'0')+':'+String(x%60).padStart(2,'0');}
+function mkShort(n,kind){
+  n=String(n).trim();
+  if(kind==='teacher')return n.replace(/^(mr|mrs|ms|miss|dr|tr|teacher)\.?\s+/i,'').slice(0,8);
+  const w=n.split(/\s+/);
+  return w.length>1?w.map(x=>x[0]).join('').toUpperCase().slice(0,4):n.slice(0,4);
+}
+const hue=id=>{let h=0;for(const ch of String(id))h=(h*31+ch.charCodeAt(0))%360;return h;};
+
+/* ---------- state ---------- */
+function blank(){
+  return{
+    school:'My School',term:'',
+    days:['Monday','Tuesday','Wednesday','Thursday','Friday'],
+    structures:[{id:'main',name:'Standard',slots:[
+      {label:'Lesson 1',start:'08:00',end:'08:40',type:'lesson'},
+      {label:'Lesson 2',start:'08:40',end:'09:20',type:'lesson'},
+      {label:'Lesson 3',start:'09:20',end:'10:00',type:'lesson'},
+      {label:'Break',start:'10:00',end:'10:30',type:'break'},
+      {label:'Lesson 4',start:'10:30',end:'11:10',type:'lesson'},
+      {label:'Lesson 5',start:'11:10',end:'11:50',type:'lesson'},
+      {label:'Lesson 6',start:'11:50',end:'12:30',type:'lesson'},
+      {label:'Lunch',start:'12:30',end:'13:30',type:'lunch'},
+      {label:'Lesson 7',start:'13:30',end:'14:10',type:'lesson'},
+      {label:'Lesson 8',start:'14:10',end:'14:50',type:'lesson'},
+      {label:'Lesson 9',start:'14:50',end:'15:30',type:'lesson'}
+    ]}],
+    rules:{fixSubj:'',fixDay:4,fixLesson:1,maxDay:7,gap:0},
+    classes:[],subjects:[],teachers:[],assign:{},schedule:null
+  };
+}
+function fromRaw(x){
+  if(x.slots&&!x.structures)x.structures=[{id:'main',name:'Standard',slots:x.slots}];
+  const b=blank();
+  return migrate(Object.assign(b,x,{rules:Object.assign(b.rules,x.rules||{})}));
+}
+function migrate(s){
+  if(!s.structures||!s.structures.length){
+    s.structures=[{id:'main',name:'Standard',slots:(s.slots&&s.slots.length?s.slots:blank().structures[0].slots)}];
+  }
+  delete s.slots;
+  (s.classes||[]).forEach(c=>{if(!c.st||!s.structures.some(t=>t.id===c.st))c.st=s.structures[0].id;});
+  s.rules.gap=+s.rules.gap||0;
+  return s;
+}
+function loadState(){
+  try{
+    const x=JSON.parse(localStorage.getItem(KEY));
+    if(x&&x.days)return fromRaw(x);
+  }catch(e){}
+  return blank();
+}
+let S=loadState();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast('Could not save – device storage may be full.');}}
+const toMin=t=>{const p=String(t||'0:0').split(':').map(Number);return (p[0]||0)*60+(p[1]||0);};
+const fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const isLunch=s=>s.type==='lunch'||/lunch/i.test(s.label||'');
+const hasLunchIn=slots=>slots.some(isLunch);
+const stById=id=>S.structures.find(s=>s.id===id)||S.structures[0];
+const stOf=c=>stById(c&&c.st);
+const lessonCountOf=st=>st.slots.filter(s=>s.type==='lesson').length;
+const maxLessons=()=>Math.max(1,...S.structures.map(lessonCountOf));
+let editSt=null;
+const curSt=()=>{if(!editSt||!S.structures.some(s=>s.id===editSt))editSt=S.structures[0].id;return stById(editSt);};
+function lessonLen(st){const l=st.slots.find(s=>s.type==='lesson');return l?Math.max(5,toMin(l.end)-toMin(l.start)):40;}
+function modelFor(st){
+  const LS=[];let lunch=false;
+  st.slots.forEach((sl,i)=>{if(isLunch(sl))lunch=true;if(sl.type==='lesson')LS.push({i,after:lunch,contig:false,s:toMin(sl.start),e:toMin(sl.end)});});
+  LS.forEach((l,k)=>{l.contig=k<LS.length-1&&LS[k+1].i===l.i+1;});
+  return LS;
+}
+function modelMap(){const m={};S.structures.forEach(st=>{m[st.id]=modelFor(st);});return m;}
+const LSof=(M,c)=>M[stOf(c).id];
+function isOutdated(sch){
+  if(sch.D!==S.days.length)return true;
+  return S.classes.some(c=>{const g=sch.cells[c.id];return !g||!g[0]||g[0].length!==lessonCountOf(stOf(c));});
+}
+function fixInfo(){
+  let sid=S.rules.fixSubj,auto=false;
+  if(!sid||!S.subjects.some(s=>s.id===sid)){
+    sid='';
+    const p=S.subjects.find(s=>/^ppi$/i.test((s.name||'').trim())||/^ppi$/i.test((s.short||'').trim()));
+    if(p){sid=p.id;auto=true;}
+  }
+  if(!sid)return null;
+  let d=+S.rules.fixDay;
+  if(auto){const f=S.days.findIndex(x=>/^fri/i.test(x));if(f>=0)d=f;}
+  d=Math.max(0,Math.min(d,S.days.length-1));
+  return{sid,d,s:Math.max(0,(+S.rules.fixLesson||1)-1),auto};
+}
+function sigNow(){return JSON.stringify([fixInfo(),S.days,S.structures.map(st=>[st.id,st.slots.map(s=>[s.type,s.label,s.start,s.end])]),S.rules,S.classes.map(c=>[c.id,!!c.early,c.st]),S.subjects.map(s=>[s.id,!!s.morning,+s.doubles||0]),S.assign,S.teachers.map(t=>t.id)]);}
+function invalidate(){if(S.schedule){S.schedule=null;toast('Timetable cleared – generate it again.');}}
+
+/* ---------- login (local to this device) ---------- */
+const AKEY='school-timetabler-auth-v1';
+let AUTH=null;try{AUTH=JSON.parse(localStorage.getItem(AKEY));}catch(e){}
+let authed=false,authMode=AUTH?'login':'create',fails=0,lockUntil=0,newRec='',hiddenAt=0;
+const hexOf=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+function rnd(n){const a=new Uint8Array(n);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);else for(let i=0;i<n;i++)a[i]=Math.floor(Math.random()*256);return a;}
+async function hashPw(pw,salt){
+  try{
+    const te=new TextEncoder();
+    const k=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveBits']);
+    return hexOf(await crypto.subtle.deriveBits({name:'PBKDF2',salt:te.encode(salt),iterations:100000,hash:'SHA-256'},k,256));
+  }catch(e){let h=5381;const s=salt+pw;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return 'x'+(h>>>0).toString(16);}
+}
+function newCode(){const al='ABCDEFGHJKMNPQRSTUVWXYZ23456789';const r=rnd(12);let c='';for(let i=0;i<12;i++){c+=al[r[i]%al.length];if(i%4===3&&i<11)c+='-';}return c;}
+const normCode=c=>String(c).toUpperCase().replace(/[^A-Z0-9]/g,'');
+const val=id=>{const e=document.getElementById(id);return e?e.value:'';};
+function amsg(m){const e=document.getElementById('amsg');if(e)e.textContent=m;}
+function saveAuth(){localStorage.setItem(AKEY,JSON.stringify(AUTH));}
+async function makeAuth(user,pw){
+  const salt=hexOf(rnd(8)),recSalt=hexOf(rnd(8)),code=newCode();
+  AUTH={user,salt,hash:await hashPw(pw,salt),recSalt,recHash:await hashPw(normCode(code),recSalt)};
+  saveAuth();newRec=code;
+}
+async function createAccount(){
+  const u=val('au_name').trim(),p=val('au_pw'),p2=val('au_pw2');
+  if(!u)return amsg('Enter your name.');
+  if(p.length<4)return amsg('Use at least 4 characters.');
+  if(p!==p2)return amsg('The two passwords do not match.');
+  await makeAuth(u,p);authMode='recovery';render();
+}
+async function doLogin(){
+  if(Date.now()<lockUntil)return amsg('Too many tries. Wait '+Math.ceil((lockUntil-Date.now())/1000)+' seconds.');
+  const ok=(await hashPw(val('au_pw'),AUTH.salt))===AUTH.hash;
+  if(ok){authed=true;fails=0;tab='home';render();return;}
+  if(++fails>=5){lockUntil=Date.now()+30000;fails=0;return amsg('Too many tries. Wait 30 seconds.');}
+  amsg('Wrong password.');
+}
+async function doReset(){
+  const c=normCode(val('au_code')),p=val('au_pw'),p2=val('au_pw2');
+  if((await hashPw(c,AUTH.recSalt))!==AUTH.recHash)return amsg('That recovery code is not right.');
+  if(p.length<4)return amsg('Use at least 4 characters.');
+  if(p!==p2)return amsg('The two passwords do not match.');
+  await makeAuth(AUTH.user,p);authMode='recovery';render();
+}
+function finishRecovery(){newRec='';authed=true;tab='home';render();}
+function copyCode(){const t=newRec;if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('Code copied.'),()=>toast('Could not copy. Write it down.'));else toast('Write the code down.');}
+function logout(){authed=false;authMode='login';fails=0;render();}
+function eraseAll(){
+  if(!confirm('This deletes ALL timetable data and the login on this device. It cannot be undone. Continue?'))return;
+  if(!confirm('Are you sure? Restore a backup file afterwards if you have one.'))return;
+  localStorage.removeItem(KEY);localStorage.removeItem(AKEY);S=blank();AUTH=null;authMode='create';render();
+}
+async function changePw(){
+  const o=val('cp_old'),n=val('cp_new'),n2=val('cp_new2');
+  if((await hashPw(o,AUTH.salt))!==AUTH.hash)return toast('Current password is wrong.');
+  if(n.length<4)return toast('Use at least 4 characters.');
+  if(n!==n2)return toast('The new passwords do not match.');
+  AUTH.salt=hexOf(rnd(8));AUTH.hash=await hashPw(n,AUTH.salt);saveAuth();
+  ['cp_old','cp_new','cp_new2'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+  toast('Password changed.');
+}
+const enter=fn=>`onkeydown="if(event.key==='Enter')${fn}()"`;
+function authView(){
+  if(authMode==='recovery')return `<div class="card auth"><h2>Save your recovery code</h2>
+    <p class="hint">If you forget your password, this code is the only way back in without erasing your data. Write it down or screenshot it now. It will not be shown again.</p>
+    <div class="code">${esc(newRec)}</div>
+    <div class="btns"><button class="b" onclick="copyCode()">Copy code</button><button class="b pri" onclick="finishRecovery()">I have saved it</button></div></div>`;
+  if(authMode==='create')return `<div class="card auth"><h2>Welcome. Create your login.</h2>
+    <p class="hint">This keeps the timetabler private on this phone. Everything stays on the device.</p>
+    <label class="f">Your name</label><input id="au_name" autocomplete="name">
+    <label class="f">Password or PIN (4+ characters)</label><input id="au_pw" type="password" autocomplete="new-password">
+    <label class="f">Repeat it</label><input id="au_pw2" type="password" autocomplete="new-password" ${enter('createAccount')}>
+    <p id="amsg" class="bad"></p>
+    <div class="btns"><button class="b pri" onclick="createAccount()">Create login</button></div></div>`;
+  if(authMode==='forgot')return `<div class="card auth"><h2>Reset password</h2>
+    <label class="f">Recovery code</label><input id="au_code" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX">
+    <label class="f">New password</label><input id="au_pw" type="password" autocomplete="new-password">
+    <label class="f">Repeat new password</label><input id="au_pw2" type="password" autocomplete="new-password" ${enter('doReset')}>
+    <p id="amsg" class="bad"></p>
+    <div class="btns"><button class="b pri" onclick="doReset()">Reset password</button><button class="b" onclick="authMode='login';render()">Back</button></div>
+    <button class="link" onclick="eraseAll()">Lost the code too? Erase everything and start over</button></div>`;
+  return `<div class="card auth"><h2>Welcome back, ${esc(AUTH.user)}</h2>
+    <label class="f">Password</label><input id="au_pw" type="password" autocomplete="current-password" ${enter('doLogin')}>
+    <p id="amsg" class="bad"></p>
+    <div class="btns"><button class="b pri" onclick="doLogin()">Sign in</button></div>
+    <button class="link" onclick="authMode='forgot';render()">Forgot password?</button></div>`;
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)hiddenAt=Date.now();
+  else if(authed&&hiddenAt&&Date.now()-hiddenAt>300000)logout();
+});
+
+/* ---------- dashboard ---------- */
+function ttStatus(){
+  const sch=S.schedule;if(!sch)return{has:false};
+  let placed=0;Object.values(sch.cells).forEach(g=>g.forEach(r=>r.forEach(x=>{if(x)placed++;})));
+  const outdated=isOutdated(sch);
+  return{has:true,at:sch.at,outdated,stale:sch.sig!==sigNow(),unplaced:(sch.unplaced||[]).length,clashes:outdated?0:clashCount(sch),placed};
+}
+function openTT(type){vw={type,id:'all',day:'all'};tab='tt';render();window.scrollTo(0,0);}
+function goGen(){tab='tt';render();gen();}
+function homeTab(){
+  const hr=new Date().getHours(),greet=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  const D=S.days.length,L=maxLessons();
+  let total=0,assigned=0;const fill=[];
+  S.classes.forEach(c=>{let n=0;S.subjects.forEach(s=>{const a=(S.assign[c.id]||{})[s.id];if(a&&a.n>0)n+=Math.floor(a.n);});total+=n;if(n>0)assigned++;fill.push([c.name||'(unnamed)',n,D*lessonsFor(c)]);});
+  const load={};
+  Object.values(S.assign).forEach(a=>Object.values(a).forEach(x=>{if(x.t&&x.n>0)load[x.t]=(load[x.t]||0)+Math.floor(x.n);}));
+  const maxW=D*L||1;
+  const st=ttStatus();
+  const ttOk=st.has&&!st.outdated&&!st.stale&&!st.unplaced&&!st.clashes;
+  const ttNote=!st.has?'Not generated yet':st.outdated?'Day structure changed. Generate again':st.stale?'Settings changed. Generate again':st.unplaced?st.unplaced+' lesson(s) could not be placed':st.clashes?st.clashes+' teacher clash(es)':'Up to date. No clashes';
+  const steps=[
+    ['Day structure',L>0,L+' lessons a day, '+D+' days','setup'],
+    ['Classes',S.classes.length>0,S.classes.length+' added','classes'],
+    ['Subjects',S.subjects.length>0,S.subjects.length+' added','subjects'],
+    ['Teachers',S.teachers.length>0,S.teachers.length+' added','teachers'],
+    ['Subjects assigned',S.classes.length>0&&assigned===S.classes.length,assigned+' of '+S.classes.length+' classes','assign'],
+    ['Timetable generated',ttOk,ttNote,'tt']
+  ];
+  const next=steps.find(s=>!s[1]);
+  const when=st.has&&st.at?new Date(st.at).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'';
+  const tl=Object.keys(load).map(id=>{const t=S.teachers.find(x=>x.id===id);return[t?t.name:'?',load[id]];}).sort((a,b)=>b[1]-a[1]);
+  return `
+  <div class="card"><h2>${greet}, ${esc(AUTH?AUTH.user:'')}</h2>
+    <div class="hint" style="margin:0">${esc(S.school)}${S.term?' | '+esc(S.term):''}</div>
+    ${next?`<div class="btns"><button class="b pri" onclick="go('${next[3]}')">Next step: ${esc(next[0])}</button></div>`:`<div class="btns"><button class="b pri" onclick="goGen()">Generate again</button></div>`}
+  </div>
+  <div class="stats">
+    <div class="stat"><b>${S.classes.length}</b><span>Classes</span></div>
+    <div class="stat"><b>${S.teachers.length}</b><span>Teachers</span></div>
+    <div class="stat"><b>${S.subjects.length}</b><span>Subjects</span></div>
+    <div class="stat"><b>${st.has&&!st.outdated?st.placed:total}</b><span>${st.has&&!st.outdated?'Lessons in timetable':'Lessons a week'}</span></div>
+  </div>
+  <div class="card"><h2>Timetable</h2>
+    <p class="${ttOk?'ok':st.has?'bad':'hint'}" style="margin:2px 0 6px">${esc(ttNote)}</p>
+    ${when?`<div class="hint" style="margin-top:0">Generated ${esc(when)}</div>`:''}
+    <div class="btns">
+      <button class="b" onclick="openTT('block')" ${st.has&&!st.outdated?'':'disabled'}>Block</button>
+      <button class="b" onclick="openTT('class')" ${st.has&&!st.outdated?'':'disabled'}>Classes</button>
+      <button class="b" onclick="openTT('teacher')" ${st.has&&!st.outdated?'':'disabled'}>Teachers</button>
+      <button class="b pri" onclick="goGen()">${st.has?'Regenerate':'Generate'}</button>
+    </div>
+  </div>
+  <div class="card"><h2>Setup progress</h2><ul class="steps">
+    ${steps.map(s=>`<li class="${s[1]?'done':''}" onclick="go('${s[3]}')"><span class="dot">${s[1]?'&#10003;':''}</span><span><b>${esc(s[0])}</b><small>${esc(s[2])}</small></span></li>`).join('')}
+  </ul></div>
+  ${fill.length?`<div class="card bars"><h2>Class load</h2>${fill.map(([n,a,c])=>`<div class="br"><span>${esc(n)}</span><span class="bar"><i class="${a>c?'over':''}" style="width:${Math.min(100,c?a/c*100:0)}%"></i></span><span>${a}/${c}</span></div>`).join('')}<div class="hint">Lessons a week against places available.</div></div>`:''}
+  ${tl.length?`<div class="card bars"><h2>Teacher load</h2>${tl.map(([n,a])=>`<div class="br"><span>${esc(n)}</span><span class="bar"><i class="${a>maxW?'over':''}" style="width:${Math.min(100,a/maxW*100)}%"></i></span><span>${a}</span></div>`).join('')}<div class="hint">Lessons a week. Most one teacher can take: ${maxW}.</div></div>`:''}`;
+}
+
+/* ---------- navigation ---------- */
+const TABS=[['home','Home'],['setup','Setup'],['classes','Classes'],['subjects','Subjects'],['teachers','Teachers'],['assign','Assign'],['tt','Timetables']];
+let tab='home',acls='',vw={type:'block',id:'all',day:'all'};
+function go(k){tab=k;render();window.scrollTo(0,0);}
+function render(){
+  $('#tabs').style.display=authed?'':'none';$('#lockbtn').style.display=authed?'':'none';
+  if(!authed){
+    $('#view').innerHTML=authView();
+    setTimeout(()=>{const e=document.querySelector('#view input');if(e)e.focus();},50);
+    return;
+  }
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+  $('#view').innerHTML=({home:homeTab,setup:setupTab,classes:classesTab,subjects:subjectsTab,teachers:teachersTab,assign:assignTab,tt:ttTab})[tab]();
+  if(tab==='tt')renderOut();
+}
+
+/* ---------- generic list editing ---------- */
+function add(list){
+  const d={classes:{name:'',early:false,st:S.structures[0].id},subjects:{name:'',short:'',doubles:0,morning:false},teachers:{name:'',short:''}}[list];
+  S[list].push(Object.assign({id:uid()},d));save();render();
+  const inp=document.querySelector('#view .item:last-of-type input');if(inp)inp.focus();
+}
+function setf(list,i,f,v){
+  const o=S[list][i];o[f]=v;
+  if(f==='name'&&list!=='classes'&&!o.short)o.short=mkShort(v,list==='teachers'?'teacher':'subject');
+  save();if(f==='name')render();
+}
+function del(list,i){
+  const o=S[list][i];
+  if(!confirm('Remove "'+(o.name||'this item')+'"?'))return;
+  S[list].splice(i,1);
+  if(list==='classes')delete S.assign[o.id];
+  if(list==='subjects'){Object.values(S.assign).forEach(a=>delete a[o.id]);if(S.rules.fixSubj===o.id)S.rules.fixSubj='';}
+  if(list==='teachers')Object.values(S.assign).forEach(a=>Object.values(a).forEach(x=>{if(x.t===o.id)x.t='';}));
+  save();render();
+}
+
+/* ---------- setup tab ---------- */
+function setupTab(){
+  const dayOpts=S.days.map((d,i)=>[i,d]);
+  const R=S.rules;
+  return `
+  <div class="card"><h2>School</h2>
+    <label class="f">School name</label><input value="${esc(S.school)}" onchange="S.school=this.value;save()">
+    <label class="f">Term or year (printed under each title)</label><input value="${esc(S.term)}" placeholder="e.g. Term 1, 2027" onchange="S.term=this.value;save()">
+  </div>
+  <div class="card"><h2>School days</h2>
+    <input value="${esc(S.days.join(', '))}" onchange="setDays(this.value)">
+    <div class="hint">Separate days with commas.</div>
+  </div>
+  <div class="card"><h2>Day structure</h2>
+    <div class="hint">If some classes have longer lessons than others, give each group its own structure. Teachers are checked against real clock times, so a teacher shared between structures never clashes.</div>
+    <label class="f">Structure</label>
+    <select onchange="editSt=this.value;render()">${opt(S.structures.map(x=>[x.id,x.name+' ('+S.classes.filter(c=>stOf(c)===x).length+' classes)']),curSt().id)}</select>
+    <label class="f">Name</label><input value="${esc(curSt().name)}" onchange="renameStructure(this.value)">
+    <div class="btns"><button class="b" onclick="addStructure()">Add another (copy of this)</button>${S.structures.length>1?'<button class="b del" onclick="delStructure()">Delete this one</button>':''}</div>
+    <label class="f">Lesson length in minutes</label>
+    <div class="row"><input id="lenin" type="number" min="5" max="120" value="${lessonLen(curSt())}"><button class="b x" onclick="applyLen()">Apply</button></div>
+    <div class="hint">Apply recalculates every start and end time from the first start time. Break and lunch lengths stay the same. You can still edit any time below.</div>
+    ${curSt().slots.map((sl,i)=>`
+    <div class="slot"><div class="two">
+      <div><label class="f">Name</label><input value="${esc(sl.label)}" onchange="setSlot(${i},'label',this.value)"></div>
+      <div><label class="f">Type</label><select onchange="setSlot(${i},'type',this.value)">${opt([['lesson','Lesson'],['break','Break'],['lunch','Lunch']],sl.type)}</select></div>
+      <div><label class="f">Start</label><input type="time" value="${esc(sl.start)}" onchange="setSlot(${i},'start',this.value)"></div>
+      <div><label class="f">End</label><input type="time" value="${esc(sl.end)}" onchange="setSlot(${i},'end',this.value)"></div>
+    </div>
+    <div class="acts">
+      <button class="b sm" onclick="moveSlot(${i},-1)" aria-label="Move up">Up</button>
+      <button class="b sm" onclick="moveSlot(${i},1)" aria-label="Move down">Down</button>
+      <button class="b sm del" onclick="delSlot(${i})">Remove</button>
+    </div></div>`).join('')}
+    <div class="btns">
+      <button class="b" onclick="addSlot('lesson')">Add lesson</button>
+      <button class="b" onclick="addSlot('break')">Add break</button>
+      <button class="b" onclick="addSlot('lunch')">Add lunch</button>
+    </div>
+  </div>
+  <div class="card"><h2>Rules</h2>
+    <div class="hint">Early-years classes are set on the Classes tab. Morning-only subjects (like Mathematics) and double lessons are set on the Subjects tab.</div>
+    <label class="f">Fixed first lesson: subject</label>
+    <select onchange="S.rules.fixSubj=this.value;save()">${opt([['','None'],...S.subjects.map(s=>[s.id,s.name||'(unnamed)'])],R.fixSubj)}</select>
+    <div class="two">
+      <div><label class="f">on day</label><select onchange="S.rules.fixDay=+this.value;save()">${opt(dayOpts,R.fixDay)}</select></div>
+      <div><label class="f">at lesson no.</label><input type="number" min="1" value="${esc(R.fixLesson)}" onchange="S.rules.fixLesson=Math.max(1,+this.value||1);save()"></div>
+    </div>
+    <div class="hint">${(()=>{const f=fixInfo();return f?(f.auto?'A subject named PPI was found, so it is set automatically to the first lesson on '+esc(S.days[f.d])+'. Choose a subject above to override.':'Every class that has this subject gets it at that time.'):'Every class that has this subject gets it at that time.';})()}</div>
+    <label class="f">Minutes a teacher needs to move between different classes</label>
+    <input type="number" min="0" max="30" value="${esc(R.gap||0)}" onchange="S.rules.gap=Math.max(0,+this.value||0);save()">
+    <div class="hint">Leave at 0 if classrooms are close. It stops a teacher having lessons that touch in two different classes.</div>
+    <label class="f">Most lessons one teacher can take in a day</label>
+    <input type="number" min="1" value="${esc(R.maxDay)}" onchange="S.rules.maxDay=Math.max(1,+this.value||7);save()">
+  </div>
+  <div class="card"><h2>Sample data and backup</h2>
+    <div class="hint">Backups keep your classes, subjects, teachers and timetable. Data is stored on this device only.</div>
+    <div class="btns">
+      <button class="b" onclick="loadSample()">Load sample data</button>
+      <button class="b" onclick="exportData()">Save backup file</button>
+      <button class="b" onclick="$('#imp').click()">Restore backup</button>
+    </div>
+    <input id="imp" type="file" accept=".json,application/json" hidden onchange="importData(this.files[0]);this.value=''">
+  </div>
+  <div class="card"><h2>Account</h2>
+    <div class="hint">Signed in as ${esc(AUTH?AUTH.user:'')}. The app locks itself after 5 minutes in the background.</div>
+    <label class="f">Current password</label><input id="cp_old" type="password" autocomplete="current-password">
+    <label class="f">New password</label><input id="cp_new" type="password" autocomplete="new-password">
+    <label class="f">Repeat new password</label><input id="cp_new2" type="password" autocomplete="new-password">
+    <div class="btns"><button class="b" onclick="changePw()">Change password</button><button class="b" onclick="logout()">Lock now</button></div>
+  </div>`;
+}
+function setDays(v){
+  const d=v.split(',').map(x=>x.trim()).filter(Boolean);
+  if(!d.length){toast('Enter at least one day.');render();return;}
+  S.days=d;S.rules.fixDay=Math.min(S.rules.fixDay,d.length-1);invalidate();save();render();
+}
+function setSlot(i,f,v){curSt().slots[i][f]=v;if(f==='type'){invalidate();save();render();}else save();}
+function moveSlot(i,dir){const a=curSt().slots,j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];invalidate();save();render();}
+function delSlot(i){const a=curSt().slots;if(!confirm('Remove "'+a[i].label+'"?'))return;a.splice(i,1);invalidate();save();render();}
+function addSlot(type){
+  const st=curSt(),a=st.slots,last=a[a.length-1],start=last?last.end:'08:00';
+  const len={lesson:lessonLen(st),break:30,lunch:60}[type];
+  const label=type==='lesson'?'Lesson '+(lessonCountOf(st)+1):type==='break'?'Break':'Lunch';
+  a.push({label,start,end:addMin(start,len),type});invalidate();save();render();
+}
+function renameStructure(v){curSt().name=v.trim()||'Structure';save();render();}
+function addStructure(){
+  const n={id:uid(),name:'Structure '+(S.structures.length+1),slots:JSON.parse(JSON.stringify(curSt().slots))};
+  S.structures.push(n);editSt=n.id;save();render();
+  toast('Added. Set its lesson length, then choose it for classes on the Classes tab.');
+}
+function delStructure(){
+  if(S.structures.length<2)return;
+  const st=curSt(),rest=S.structures.find(x=>x.id!==st.id);
+  if(!confirm('Delete "'+st.name+'"? Its classes will move to "'+rest.name+'".'))return;
+  S.classes.forEach(c=>{if(c.st===st.id)c.st=rest.id;});
+  S.structures=S.structures.filter(x=>x.id!==st.id);editSt=rest.id;invalidate();save();render();
+}
+function applyLen(){
+  const n=Math.max(5,Math.min(120,+val('lenin')||40)),st=curSt();
+  let t=st.slots.length?st.slots[0].start:'08:00';
+  st.slots.forEach(sl=>{
+    const dur=sl.type==='lesson'?n:Math.max(1,toMin(sl.end)-toMin(sl.start));
+    sl.start=t;sl.end=addMin(t,dur);t=sl.end;
+  });
+  invalidate();save();render();toast('Every lesson is now '+n+' minutes.');
+}
+
+/* ---------- data tabs ---------- */
+function classesTab(){
+  return `<div class="card"><h2>Classes</h2>
+  ${S.classes.map((c,i)=>`<div class="item">
+    <div class="row"><input value="${esc(c.name)}" placeholder="Class name" onchange="setf('classes',${i},'name',this.value)"><button class="b sm del x" onclick="del('classes',${i})">Remove</button></div>
+    <label class="chk"><input type="checkbox" ${c.early?'checked':''} onchange="setf('classes',${i},'early',this.checked)"> Early years: no lessons after lunch</label>
+    ${S.structures.length>1?`<label class="f">Day structure (lesson length)</label><select onchange="setf('classes',${i},'st',this.value)">${opt(S.structures.map(x=>[x.id,x.name+', '+lessonLen(x)+' min']),c.st)}</select>`:''}
+  </div>`).join('')||'<p class="hint">No classes yet. Add your first class, or load sample data in Setup.</p>'}
+  <div class="btns"><button class="b pri" onclick="add('classes')">Add class</button></div></div>`;
+}
+function subjectsTab(){
+  return `<div class="card"><h2>Subjects</h2>
+  <div class="hint">Short name is what prints in the timetable cells.</div>
+  ${S.subjects.map((s,i)=>`<div class="item">
+    <div class="row"><input value="${esc(s.name)}" placeholder="Subject name" onchange="setf('subjects',${i},'name',this.value)"><button class="b sm del x" onclick="del('subjects',${i})">Remove</button></div>
+    <div class="two">
+      <div><label class="f">Short name</label><input value="${esc(s.short)}" onchange="setf('subjects',${i},'short',this.value)"></div>
+      <div><label class="f">Double lessons per week</label><input type="number" min="0" value="${esc(s.doubles)}" onchange="setf('subjects',${i},'doubles',Math.max(0,+this.value||0))"></div>
+    </div>
+    <label class="chk"><input type="checkbox" ${s.morning?'checked':''} onchange="setf('subjects',${i},'morning',this.checked)"> Morning only: must be before lunch</label>
+  </div>`).join('')||'<p class="hint">No subjects yet.</p>'}
+  <div class="btns"><button class="b pri" onclick="add('subjects')">Add subject</button></div></div>`;
+}
+function teachersTab(){
+  return `<div class="card"><h2>Teachers</h2>
+  <div class="hint">Short name is what prints in class and block timetables.</div>
+  ${S.teachers.map((t,i)=>`<div class="item">
+    <div class="row"><input value="${esc(t.name)}" placeholder="Teacher name" onchange="setf('teachers',${i},'name',this.value)"><button class="b sm del x" onclick="del('teachers',${i})">Remove</button></div>
+    <label class="f">Short name</label><input value="${esc(t.short)}" onchange="setf('teachers',${i},'short',this.value)">
+  </div>`).join('')||'<p class="hint">No teachers yet.</p>'}
+  <div class="btns"><button class="b pri" onclick="add('teachers')">Add teacher</button></div></div>`;
+}
+
+/* ---------- assign tab ---------- */
+function assignTab(){
+  if(!S.classes.length||!S.subjects.length)
+    return `<div class="card"><h2>Assign subjects</h2><p class="hint">Add at least one class and one subject first.</p></div>`;
+  if(!S.classes.some(c=>c.id===acls))acls=S.classes[0].id;
+  const A=S.assign[acls]||{};
+  const D=S.days.length,L=maxLessons();
+  const c=S.classes.find(x=>x.id===acls);
+  let tot=0;S.subjects.forEach(s=>{const a=A[s.id];if(a&&a.n>0)tot+=Math.floor(a.n);});
+  const cap=D*lessonsFor(c);
+  const load={};
+  Object.values(S.assign).forEach(a=>Object.values(a).forEach(x=>{if(x.t&&x.n>0)load[x.t]=(load[x.t]||0)+Math.floor(x.n);}));
+  const maxW=D*L;
+  return `<div class="card"><h2>Assign subjects</h2>
+    <label class="f">Class</label>
+    <select onchange="acls=this.value;render()">${opt(S.classes.map(x=>[x.id,x.name||'(unnamed)']),acls)}</select>
+    <div class="hint">Set lessons per week and a teacher for each subject this class takes. Leave at 0 if not taught.</div>
+    ${S.subjects.map(s=>{const a=A[s.id]||{n:0,t:''};return `<div class="item">
+      <div class="row"><b style="flex:1.2">${esc(s.name||'(unnamed)')}</b>
+      <input type="number" min="0" style="flex:.6" value="${esc(a.n||0)}" aria-label="Lessons per week" onchange="setA('${s.id}','n',Math.max(0,+this.value||0))">
+      <select style="flex:1.4" aria-label="Teacher" onchange="setA('${s.id}','t',this.value)">${opt([['','No teacher'],...S.teachers.map(t=>[t.id,t.name||'(unnamed)'])],a.t||'')}</select></div>
+    </div>`;}).join('')}
+    <p class="${tot>cap?'bad':'ok'}">${tot} lessons a week. Room for ${cap}.</p>
+    <div class="row"><select id="cpto">${opt([['all','All other classes'],...S.classes.filter(x=>x.id!==acls).map(x=>[x.id,x.name||'(unnamed)'])],'all')}</select>
+    <button class="b x" onclick="copyA($('#cpto').value)">Copy to</button></div>
+  </div>
+  <div class="card"><h2>Teacher workload</h2>
+    <div class="chips">${S.teachers.map(t=>{const n=load[t.id]||0;return `<span class="chip${n>maxW?' bad':''}">${esc(t.name||'(unnamed)')}: ${n}</span>`;}).join('')||'<span class="hint">No teachers yet.</span>'}</div>
+    <div class="hint">Lessons per week across all classes. A teacher can't exceed ${maxW}.</div>
+  </div>`;
+}
+function setA(sid,f,v){
+  if(!S.assign[acls])S.assign[acls]={};
+  if(!S.assign[acls][sid])S.assign[acls][sid]={n:0,t:''};
+  S.assign[acls][sid][f]=v;save();render();
+}
+function copyA(target){
+  const src=S.assign[acls]||{};
+  const ids=target==='all'?S.classes.map(c=>c.id).filter(i=>i!==acls):[target];
+  if(!confirm('Replace the subjects of '+(ids.length>1?'all other classes':'that class')+' with this class\'s?'))return;
+  ids.forEach(i=>{S.assign[i]=JSON.parse(JSON.stringify(src));});
+  save();toast('Copied.');render();
+}
+function lessonsFor(c){
+  let after=false,n=0;
+  stOf(c).slots.forEach(s=>{if(isLunch(s))after=true;if(s.type==='lesson'&&!(c&&c.early&&after))n++;});
+  return n;
+}
+
+/* ---------- generator ---------- */
+function makeUnits(){
+  const D=S.days.length,units=[];let n=0;
+  const fx=fixInfo(),fixS=fx?fx.sid:'',fixD=fx?fx.d:0,fixL=fx?fx.s:0;
+  S.classes.forEach(c=>{
+    const A=S.assign[c.id]||{};
+    S.subjects.forEach(sub=>{
+      const a=A[sub.id];if(!a||!(+a.n>0))return;
+      let left=Math.floor(+a.n);const grp=[];
+      const mk=(len,fixed)=>{const u={id:n++,c,sub,t:a.t||'',len,fixed:fixed||null};grp.push(u);units.push(u);};
+      if(fixS&&sub.id===fixS){mk(1,{d:fixD,s:fixL});left--;}
+      const dbl=Math.min(+sub.doubles||0,Math.floor(left/2));
+      for(let i=0;i<dbl;i++){mk(2);left-=2;}
+      for(let i=0;i<left;i++)mk(1);
+      grp.forEach(u=>{u.spread=grp.length<=D;});
+    });
+  });
+  return units;
+}
+function precheck(M){
+  const errs=[],D=S.days.length,nm=c=>c.name||'A class';
+  if(!S.classes.length)errs.push('Add at least one class.');
+  S.structures.filter(st=>S.classes.some(c=>stOf(c)===st)).forEach(st=>{
+    if(!M[st.id].length)errs.push('Day structure "'+st.name+'" has no lessons. Add some in Setup.');
+    st.slots.forEach((sl,i)=>{
+      if(toMin(sl.end)<=toMin(sl.start))errs.push('"'+sl.label+'" in "'+st.name+'" ends before it starts.');
+      else if(i>0&&toMin(sl.start)<toMin(st.slots[i-1].end))errs.push('"'+sl.label+'" in "'+st.name+'" starts before the slot above it ends.');
+    });
+  });
+  const fx=fixInfo();
+  if(fx){
+    const byT={};
+    S.classes.forEach(c=>{const a=(S.assign[c.id]||{})[fx.sid];if(a&&a.n>0&&a.t)(byT[a.t]=byT[a.t]||[]).push(c.name||'a class');});
+    Object.keys(byT).forEach(t=>{if(byT[t].length>1){const tn=(S.teachers.find(x=>x.id===t)||{}).name||'A teacher';errs.push(tn+' is the '+(sub(fx.sid)||{}).name+' teacher for '+byT[t].join(', ')+'. These classes all have it at the same time, so each needs a different teacher.');}});
+  }
+  const needLunch=new Set();
+  S.classes.forEach(c=>{
+    const st=stOf(c),LS=M[st.id],A=S.assign[c.id]||{};let tot=0,mor=0;
+    S.subjects.forEach(s=>{const a=A[s.id];if(a&&a.n>0){tot+=Math.floor(a.n);if(s.morning)mor+=Math.floor(a.n);}});
+    if(!tot)errs.push(nm(c)+' has no subjects assigned.');
+    if(c.early||mor>0)needLunch.add(st.id);
+    const avail=D*lessonsFor(c);
+    if(tot>avail)errs.push(nm(c)+': '+tot+' lessons, but only '+avail+' places. Remove lessons or add periods.');
+    const morn=D*LS.filter(l=>!l.after).length;
+    if(mor>morn)errs.push(nm(c)+': '+mor+' morning-only lessons, but only '+morn+' morning places.');
+    if(fx){const a=A[fx.sid];if(a&&a.n>0&&fx.s>=LS.length)errs.push(nm(c)+': fixed lesson no. '+(fx.s+1)+' does not exist in "'+st.name+'".');}
+  });
+  needLunch.forEach(id=>{const st=stById(id);if(!hasLunchIn(st.slots))errs.push('Day structure "'+st.name+'" has no Lunch. Set its lunch slot type to Lunch, otherwise the early-years and morning-only rules cannot work.');});
+  return [...new Set(errs)];
+}
+function attempt(M,units,D,maxDay,gap){
+  const cell={},tb={},tday={},csd={},cload={};
+  S.classes.forEach(c=>{const n=LSof(M,c).length;cell[c.id]=Array.from({length:D},()=>Array(n).fill(null));cload[c.id]=Array(D).fill(0);});
+  S.teachers.forEach(t=>{tb[t.id]=Array.from({length:D},()=>[]);tday[t.id]=Array(D).fill(0);});
+  units.forEach(u=>{if(u.t&&!tb[u.t])u.t='';u.k=u.c.id+'|'+u.sub.id;if(!csd[u.k])csd[u.k]=Array(D).fill(0);u.pos=null;u.LS=LSof(M,u.c);u.L=u.LS.length;});
+  const rulesOK=(u,s)=>{
+    for(let k=0;k<u.len;k++){const l=u.LS[s+k];if(!l)return false;if(u.c.early&&l.after)return false;if(u.sub.morning&&l.after)return false;}
+    return u.len===1||u.LS[s].contig;
+  };
+  const blockers=(u,d,s)=>{
+    const a=u.LS[s].s,b=u.LS[s+u.len-1].e,r=[];
+    for(const x of tb[u.t][d]){const g=x.u.c===u.c?0:gap;if(a<x.b+g&&x.a<b+g)r.push(x.u);}
+    return r;
+  };
+  const ok=(u,d,s)=>{
+    if(s+u.len>u.L||!rulesOK(u,s))return false;
+    const C=cell[u.c.id][d];
+    for(let k=0;k<u.len;k++)if(C[s+k])return false;
+    if(u.t){if(blockers(u,d,s).length)return false;if(tday[u.t][d]+u.len>maxDay)return false;}
+    if(u.spread&&csd[u.k][d]>0)return false;
+    return true;
+  };
+  const put=(u,d,s)=>{for(let k=0;k<u.len;k++)cell[u.c.id][d][s+k]=u;if(u.t)tb[u.t][d].push({a:u.LS[s].s,b:u.LS[s+u.len-1].e,u});cload[u.c.id][d]+=u.len;csd[u.k][d]++;if(u.t)tday[u.t][d]+=u.len;u.pos={d,s};};
+  const rm=u=>{const{d,s}=u.pos;for(let k=0;k<u.len;k++)cell[u.c.id][d][s+k]=null;if(u.t)tb[u.t][d]=tb[u.t][d].filter(x=>x.u!==u);cload[u.c.id][d]-=u.len;csd[u.k][d]--;if(u.t)tday[u.t][d]-=u.len;u.pos=null;};
+  const cands=u=>{
+    const r=[];
+    if(u.fixed){if(ok(u,u.fixed.d,u.fixed.s))r.push([u.fixed.d,u.fixed.s]);return r;}
+    for(let d=0;d<D;d++)for(let s=0;s<u.L;s++)if(ok(u,d,s))r.push([d,s]);
+    return r;
+  };
+  const score=(u,d,s)=>{const g=csd[u.k];return cload[u.c.id][d]*2+((g[d-1]>0||g[d+1]>0)?1.2:0)+(u.t?tday[u.t][d]*.6:0)+Math.random()*3+(u.sub.morning?s*.2:0);};
+  const placeAny=u=>{
+    const c=cands(u);if(!c.length)return false;
+    let b=null,bs=1e9;for(const[d,s]of c){const v=score(u,d,s);if(v<bs){bs=v;b=[d,s];}}
+    put(u,b[0],b[1]);return true;
+  };
+  const repair=u=>{
+    if(u.fixed||!u.t)return false;
+    const ds=[...Array(D).keys()].sort(()=>Math.random()-.5);
+    for(const d of ds){for(let s=0;s+u.len<=u.L;s++){
+      if(!rulesOK(u,s))continue;
+      const C=cell[u.c.id][d];let free=true;
+      for(let k=0;k<u.len;k++)if(C[s+k]){free=false;break;}
+      if(!free)continue;
+      const bl=new Set(blockers(u,d,s));
+      if(bl.size!==1)continue;
+      const B=[...bl][0];if(B.fixed)continue;
+      const old=B.pos;rm(B);
+      if(ok(u,d,s)){put(u,d,s);if(placeAny(B))return true;rm(u);}
+      put(B,old.d,old.s);
+    }}
+    return false;
+  };
+  units.forEach(u=>{
+    let n=0;
+    if(!u.fixed){for(let d=0;d<D;d++)for(let s=0;s<u.L;s++)if(s+u.len<=u.L&&rulesOK(u,s))n++;}
+    u.o=u.fixed?-100:n+Math.random()*5-(u.len===2?3:0);
+  });
+  const order=[...units].sort((a,b)=>a.o-b.o);
+  let un=[];
+  for(const u of order){if(!placeAny(u)&&!repair(u))un.push(u);}
+  un=un.filter(u=>!(placeAny(u)||repair(u)));
+  const cells={};
+  S.classes.forEach(c=>{
+    cells[c.id]=cell[c.id].map(row=>row.map((u,s)=>{
+      if(!u)return null;
+      return{sid:u.sub.id,tid:u.t,dbl:u.len===2?(u.pos.s===s?1:2):0};
+    }));
+  });
+  return{cells,unplaced:un.map(u=>({cid:u.c.id,sid:u.sub.id,len:u.len}))};
+}
+async function solve(M){
+  const D=S.days.length,maxDay=+S.rules.maxDay||99,gap=+S.rules.gap||0;
+  let best=null,k=0;const t0=Date.now();
+  while(Date.now()-t0<6000){
+    const r=attempt(M,makeUnits(),D,maxDay,gap);
+    if(!best||r.unplaced.length<best.unplaced.length)best=r;
+    if(!r.unplaced.length)break;
+    if(++k%4===0){$('#stat')&&($('#stat').textContent='Working… best so far leaves '+best.unplaced.length+' lesson(s) unplaced');await new Promise(r=>setTimeout(r));}
+  }
+  return best;
+}
+async function gen(){
+  const M=modelMap(),errs=precheck(M);
+  if(errs.length){$('#stat').innerHTML='<div class="bad">'+errs.map(esc).join('<br>')+'</div>';return;}
+  $('#stat').textContent='Working…';$('#genbtn').disabled=true;
+  await new Promise(r=>setTimeout(r,30));
+  const res=await solve(M);
+  S.schedule={D:S.days.length,cells:res.cells,unplaced:res.unplaced,at:Date.now(),sig:sigNow()};
+  save();$('#genbtn').disabled=false;renderOut();
+}
+function clashCount(sch){
+  let n=0;const M=modelMap(),gap=+S.rules.gap||0;
+  for(let d=0;d<sch.D;d++){
+    const by={};
+    S.classes.forEach(c=>{
+      const row=sch.cells[c.id]&&sch.cells[c.id][d];if(!row)return;
+      const LS=LSof(M,c);
+      row.forEach((x,l)=>{if(x&&x.tid&&LS[l])(by[x.tid]=by[x.tid]||[]).push({a:LS[l].s,b:LS[l].e,c:c.id});});
+    });
+    for(const t in by){
+      const L=by[t];
+      for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){
+        const g=L[i].c===L[j].c?0:gap;
+        if(L[i].a<L[j].b+g&&L[j].a<L[i].b+g)n++;
+      }
+    }
+  }
+  return n;
+}
+/* ---------- timetables tab ---------- */
+function ttTab(){
+  const T=vw.type;
+  let target='';
+  if(T==='block')target=`<label class="f">Day</label><select onchange="vw.day=this.value;renderOut()">${opt([['all','All days'],...S.days.map((d,i)=>[i,d])],vw.day)}</select>`;
+  if(T==='class')target=`<label class="f">Class</label><select onchange="vw.id=this.value;renderOut()">${opt([['all','All classes'],...S.classes.map(c=>[c.id,c.name])],vw.id)}</select>`;
+  if(T==='teacher')target=`<label class="f">Teacher</label><select onchange="vw.id=this.value;renderOut()">${opt([['all','All teachers'],...S.teachers.map(t=>[t.id,t.name])],vw.id)}</select>`;
+  return `<div class="card noprint"><h2>Generate</h2>
+    <div class="btns" style="margin-top:0"><button class="b pri" id="genbtn" onclick="gen()">${S.schedule?'Generate again':'Generate timetable'}</button></div>
+    <div id="stat" class="hint"></div>
+    <label class="f">Show</label>
+    <select onchange="vw.type=this.value;vw.id='all';vw.day='all';render()">${opt([['block','Block timetable'],['class','Class timetable'],['teacher','Teacher timetable']],T)}</select>
+    ${target}
+    <div class="btns"><button class="b" onclick="window.print()">Print or save as PDF</button></div>
+  </div>
+  <div id="out"></div>`;
+}
+const sub=id=>S.subjects.find(x=>x.id===id),tea=id=>S.teachers.find(x=>x.id===id);
+const sShort=id=>{const s=sub(id);return s?(s.short||s.name):'?';};
+const tShort=id=>{const t=tea(id);return t?(t.short||t.name):'';};
+function cellOf(x,top,bot){
+  if(!x)return null;if(x.dbl===2)return{skip:true};
+  return{html:`<span class="s">${esc(top)}</span><span class="t">${esc(bot)}</span>`,span:x.dbl===1?2:1,style:`background:hsl(${hue(x.sid)} 62% 90%)`};
+}
+function tbl(rows,cellFor,corner,slots){
+  let h=`<table class="tt"><thead><tr><th class="rh">${esc(corner)}</th>`;
+  slots.forEach(sl=>{h+=sl.type==='lesson'?`<th>${esc(sl.label)}<small>${esc(sl.start)}–${esc(sl.end)}</small></th>`:`<th class="brk"></th>`;});
+  h+='</tr></thead><tbody>';
+  rows.forEach((r,ri)=>{
+    h+=`<tr><th class="rh">${esc(r.label)}</th>`;
+    let li=0;
+    slots.forEach(sl=>{
+      if(sl.type!=='lesson'){if(ri===0)h+=`<td class="brk" rowspan="${rows.length}"><span>${esc(sl.label)}</span></td>`;return;}
+      const c=cellFor(r.key,li);li++;
+      if(c&&c.skip)return;
+      h+=`<td${c&&c.span>1?` colspan="${c.span}"`:''}${c&&c.style?` style="${c.style}"`:''}>${c?c.html:''}</td>`;
+    });
+    h+='</tr>';
+  });
+  return h+'</tbody></table>';
+}
+function timeAxis(structs){
+  const pts=new Set();
+  structs.forEach(st=>st.slots.forEach(sl=>{pts.add(toMin(sl.start));pts.add(toMin(sl.end));}));
+  const a=[...pts].sort((x,y)=>x-y),cols=[];
+  for(let i=0;i<a.length-1;i++){
+    const s=a[i],e=a[i+1];let lesson=false,brk=null;
+    structs.forEach(st=>st.slots.forEach(sl=>{
+      if(toMin(sl.start)<=s&&e<=toMin(sl.end)){if(sl.type==='lesson')lesson=true;else if(!brk)brk=sl.label;}
+    }));
+    if(!lesson&&!brk)continue;
+    cols.push({s,e,brk:lesson?null:brk});
+  }
+  return cols;
+}
+function tblTime(rows,blocksFor,corner,structs){
+  const cols=timeAxis(structs);
+  let h=`<table class="tt time"><thead><tr><th class="rh">${esc(corner)}</th>`;
+  cols.forEach(c=>{h+=c.brk?`<th class="brk"></th>`:`<th class="vt"><span>${fmt(c.s)}-${fmt(c.e)}</span></th>`;});
+  h+='</tr></thead><tbody>';
+  rows.forEach((r,ri)=>{
+    const blocks=blocksFor(r.key);
+    h+=`<tr><th class="rh">${esc(r.label)}</th>`;
+    let i=0;
+    while(i<cols.length){
+      const c=cols[i];
+      if(c.brk){if(ri===0)h+=`<td class="brk" rowspan="${rows.length}"><span>${esc(c.brk)}</span></td>`;i++;continue;}
+      const b=blocks.find(x=>x.a<=c.s&&c.e<=x.b);
+      if(b){let j=i;while(j<cols.length&&!cols[j].brk&&cols[j].s>=b.a&&cols[j].e<=b.b)j++;if(j===i)j=i+1;h+=`<td colspan="${j-i}" style="${b.style}">${b.html}</td>`;i=j;}
+      else{h+='<td></td>';i++;}
+    }
+    h+='</tr>';
+  });
+  return h+'</tbody></table>';
+}
+function sheet(title,subtitle,body,key){
+  return `<section class="sheet"><h3>${esc(S.school)}: ${esc(title)}</h3><div class="sub">${esc([S.term,subtitle].filter(Boolean).join('  |  '))}</div>${body}${key||''}</section>`;
+}
+function renderOut(){
+  const o=$('#out'),st=$('#stat'),sch=S.schedule;
+  if(!o)return;
+  if(!sch){o.innerHTML='<div class="card noprint"><p class="hint">No timetable yet. Tap Generate timetable above.</p></div>';return;}
+  if(isOutdated(sch)){o.innerHTML='<div class="card noprint"><p class="bad">The day structure or classes changed. Generate the timetable again.</p></div>';return;}
+  const cl=clashCount(sch),un=sch.unplaced||[];
+  const M=modelMap();let rv=0;
+  S.classes.forEach(c=>{const LS=LSof(M,c),g=sch.cells[c.id]||[];g.forEach(r=>r.forEach((x,l)=>{if(!x||!LS[l]||!LS[l].after)return;const s=sub(x.sid);if(c.early||(s&&s.morning))rv++;}));});
+  const fxi=fixInfo();let fxMiss=0;
+  if(fxi)S.classes.forEach(c=>{const a=(S.assign[c.id]||{})[fxi.sid];if(!a||!(a.n>0))return;const x=sch.cells[c.id]&&sch.cells[c.id][fxi.d]&&sch.cells[c.id][fxi.d][fxi.s];if(!x||x.sid!==fxi.sid)fxMiss++;});
+  let msg='';
+  if(fxMiss)msg+=`<div class="bad">${fxMiss} class(es) do not have ${esc((sub(fxi.sid)||{}).name)} at the fixed time. Generate again.</div>`;
+  if(sch.sig!==sigNow())msg+='<div class="bad"><b>Your settings have changed since this timetable was generated.</b> Tap Generate again to apply them.</div>';
+  if(rv)msg+=`<div class="bad">${rv} lesson(s) break the early-years or morning-only rules. Generate again.</div>`;
+  msg+=cl?`<span class="bad">${cl} teacher clash(es) found.</span> `:'<span class="ok">No teacher clashes, checked by clock time.</span> ';
+  if(un.length){
+    const names=un.map(u=>{const c=S.classes.find(x=>x.id===u.cid);return (c?c.name:'?')+' '+sShort(u.sid)+(u.len===2?' (double)':'');});
+    msg+=`<div class="bad">${un.length} lesson(s) could not be placed: ${esc(names.join(', '))}. Try fewer lessons for those classes, more teachers, or fewer strict rules, then generate again.</div>`;
+  }
+  if(st&&!$('#genbtn').disabled)st.innerHTML=msg;
+  const days=S.days.map((d,i)=>i);
+  const dayRows=days.map(i=>({label:S.days[i],key:i}));
+  const clsCell=(c,d,li)=>{const x=sch.cells[c.id]&&sch.cells[c.id][d]&&sch.cells[c.id][d][li];return cellOf(x,sShort(x&&x.sid),tShort(x&&x.tid));};
+  let sheets=[];
+  if(vw.type==='block'){
+    const list=vw.day==='all'?days:[+vw.day];
+    const groups=S.structures.filter(g=>S.classes.some(c=>stOf(c)===g));
+    sheets=list.map(d=>sheet('Block Timetable: '+S.days[d],'',groups.map(g=>{
+      const cl2=S.classes.filter(c=>stOf(c)===g);
+      return (groups.length>1?`<div class="grp">${esc(g.name)} (${lessonLen(g)} minute lessons)</div>`:'')+
+        tbl(cl2.map(c=>({label:c.name,key:c.id})),(cid,li)=>clsCell(S.classes.find(c=>c.id===cid),d,li),'Class',g.slots);
+    }).join('')));
+  }
+  if(vw.type==='class'){
+    const list=vw.id==='all'?S.classes:S.classes.filter(c=>c.id===vw.id);
+    sheets=list.map(c=>{
+      const used={};
+      sch.cells[c.id].forEach(r=>r.forEach(x=>{if(x)used[x.sid+'|'+x.tid]=x;}));
+      const key='<div class="key">'+Object.values(used).map(x=>{const s=sub(x.sid),t=tea(x.tid);return esc((s?s.short||s.name:'?')+' = '+(s?s.name:'?')+(t?' ('+t.name+')':''));}).join('; ')+'</div>';
+      return sheet('Class Timetable: '+c.name,'',tbl(dayRows,(d,li)=>clsCell(c,d,li),'Day',stOf(c).slots),key);
+    });
+  }
+  if(vw.type==='teacher'){
+    const list=vw.id==='all'?S.teachers:S.teachers.filter(t=>t.id===vw.id);
+    sheets=list.map(t=>{
+      const g=Array.from({length:sch.D},()=>Array(maxLessons()).fill(null)),per={},used=new Set();let n=0;
+      S.classes.forEach(c=>{
+        const LS=LSof(M,c);
+        (sch.cells[c.id]||[]).forEach((row,d)=>row.forEach((x,l)=>{
+          if(!x||x.tid!==t.id)return;
+          used.add(stOf(c).id);
+          g[d][l]={sid:x.sid,dbl:x.dbl,cn:c.name};
+          if(x.dbl===2)return;
+          n+=x.dbl===1?2:1;
+          (per[d]=per[d]||[]).push({a:LS[l].s,b:x.dbl===1?LS[l+1].e:LS[l].e,style:`background:hsl(${hue(x.sid)} 62% 90%)`,html:`<span class="s">${esc(c.name)}</span><span class="t">${esc(sShort(x.sid))}</span>`});
+        }));
+      });
+      const sts=[...used].map(stById);
+      const body=sts.length>1
+        ?tblTime(dayRows,d=>per[d]||[],'Day',sts)
+        :tbl(dayRows,(d,li)=>{const x=g[d][li];return cellOf(x,x&&x.cn,sShort(x&&x.sid));},'Day',(sts[0]||S.structures[0]).slots);
+      return sheet('Teacher Timetable: '+t.name,n+' lessons a week',body);
+    });
+  }
+  o.innerHTML=sheets.join('')||'<div class="card noprint"><p class="hint">Nothing to show yet. Add classes or teachers first.</p></div>';
+}
+
+/* ---------- sample and backup ---------- */
+function loadSample(){
+  if((S.classes.length||S.subjects.length||S.teachers.length)&&!confirm('Replace your current data with sample data?'))return;
+  const B=blank();
+  const subs=[['Mathematics','Math',1,true,5],['English','Eng',0,false,4],['Kiswahili','Kisw',0,false,3],['Science','Sci',1,false,3],['Social Studies','SST',0,false,2],['CRE','CRE',0,false,2],['PPI','PPI',0,false,1],['Creative Arts','Art',1,false,2],['Physical Education','PE',1,false,2]];
+  B.subjects=subs.map(([name,short,doubles,morning])=>({id:uid(),name,short,doubles,morning}));
+  B.teachers=['Ms Achieng','Mr Otieno','Ms Wanjiru','Mr Kamau','Ms Njeri','Mr Mwangi'].map(name=>({id:uid(),name,short:mkShort(name,'teacher')}));
+  B.classes=[['Play Group',true],['PP1',true],['PP2',true],['Grade 1',false],['Grade 2',false],['Grade 3',false]].map(([name,early])=>({id:uid(),name,early,st:B.structures[0].id}));
+  B.classes.forEach((c,ci)=>{B.assign[c.id]={};B.subjects.forEach((s,si)=>{B.assign[c.id][s.id]={n:subs[si][4],t:B.teachers[(ci+si)%B.teachers.length].id};});});
+  B.rules.fixSubj=B.subjects[6].id;
+  S=B;save();render();toast('Sample data loaded. Open Timetables and tap Generate.');
+}
+function exportData(){
+  const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='timetabler-backup.json';document.body.appendChild(a);a.click();a.remove();
+}
+function importData(f){
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.days||(!x.slots&&!x.structures))throw 0;S=fromRaw(x);save();render();toast('Backup restored.');}catch(e){toast('That file is not a timetabler backup.');}};
+  r.readAsText(f);
+}
+
+render();
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
